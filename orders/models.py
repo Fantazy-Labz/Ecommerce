@@ -1,21 +1,20 @@
 from django.db import models
+from .models import Product, Profile, CustomUser
 
 # Create your models here.
 #Bag class for products selection
-class Bag(model.Models):
-    products = models.ForeignKey(Product,  on_delete=models.CASCADE)
-    price = models.IntegerField(total_price)
-    username = models.ForeingKey(Profile, on_delete = models.CASCADE)
-    quantity = models.IntegerField(products_quant)
+class Bag(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    quantity = models.IntegerField()
 
+    @property
     def total_price(self):
         return self.quantity * self.product.price
-
-    def products_quant(products):
-        return  self.queantity
+    
 
 #Shipping model for shiping information
-class ShippingInfo(model.Models):
+class ShippingInfo(models.Model):
 
     STATE_CHOICES = [
     ('AGU', 'Aguascalientes'),
@@ -65,10 +64,4 @@ class ShippingInfo(model.Models):
     order_id = models.CharField(max_length=18)
     status = models.CharField(max_length=20, options = STATUS)
 
-#Payment information
-class PaymentInformation(model.Models):
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
-    amount = mdoels.ForeignKey(Bag, on_delete= models.CASCADE)
-    order_id = models.ForeignKey(ShippingInfo, on_delete= models.CASCADE)
-    
-#Stripe API ???
+

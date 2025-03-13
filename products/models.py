@@ -1,20 +1,19 @@
 from django.db import models
-from django import validators
+from django.core.validators import MinValueValidator, MaxValueValidator
 
-# Create your models here.
-class Product(model.Models):
+
+class Product(models.Model): 
+
+    OPTIONS = [
+        ("ROPA", "Ropa"),
+        ("CALZADO", "Calzado")
+    ]
+
     name = models.CharField(max_length=30, unique=True)
-    desciption = models.TextField(max_length=250)
+    description = models.TextField(max_length=250)  # Fixed typo
     price = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100000)])
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    category = models.CharField(max_length=30, choices = OPTIONS)
     stock = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
 
-    def __str__(self):
-        return self.name
-
-class Categorie(model.Models):
-    name = models.CharField(max_length=30, unique=True)
-    desciption = models.TextField(max_length=250)
-    
     def __str__(self):
         return self.name
