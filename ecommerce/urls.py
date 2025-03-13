@@ -21,9 +21,6 @@ from ecommerce import settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("products/", include("products.urls"))
-]
-
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path("products/", include("products.urls")),
+    path("custom_auth/", include("custom_auth.urls"))
+]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

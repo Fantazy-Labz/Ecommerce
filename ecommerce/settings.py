@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     #own modules
-    "products.apps.ProductsConfig"
+    "products.apps.ProductsConfig",
+    "custom_auth"
 ]
 
 MIDDLEWARE = [
@@ -128,3 +129,30 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL ="/media/"
+
+#Email configuration
+# Configuración de email
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # Ajusta según tu proveedor
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'david.salomon.nava11@gmail.com'  # Reemplaza con tu correo
+EMAIL_HOST_PASSWORD = 'lyjs jysk zmpi pdwj'  # Reemplaza con tu contraseña de aplicación
+
+# URL base para enlaces de correo electrónico
+BASE_URL = 'http://localhost:8000'  # Ajusta según tu dominio en producción
+
+# Configuración de autenticación
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'login'
+
+AUTH_USER_MODEL = "custom_auth.CustomUser"
+
+
+SITE_ID = 1
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_USERNAME_REQUIRED = False
+

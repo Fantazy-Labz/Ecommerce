@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Verificación de correo electrónico</title>
+</head>
+<body>
+    <h2>Hola {{ user.username }},</h2>
+    <p>Gracias por registrarte. Por favor, haz clic en el siguiente enlace para verificar tu dirección de correo electrónico:</p>
+    <p><a href="http://{{ domain }}{% url 'verify_email' token=token %}">Verificar correo electrónico</a></p>
+    <p>Si no has solicitado este registro, puedes ignorar este correo.</p>
+    <p>Saludos,<br>El equipo de tu Ecommerce</p>
+</body>
+</html>

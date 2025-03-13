@@ -15,3 +15,7 @@ def view_details(request, product_id):
     stock= product.stock
     price= product.price
     return render(request, "product_details.html" , {"product": product, "name":name, "description": description, "category": category, "stock": stock, "price": price})
+
+
+def view_cart(request):
+    return
