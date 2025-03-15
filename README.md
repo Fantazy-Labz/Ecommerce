@@ -1,8 +1,3 @@
-Aquí tienes un ejemplo de un archivo **`README.md`** para tu proyecto de comercio electrónico en Django. Este archivo proporciona una descripción general del proyecto, cómo configurarlo, cómo ejecutarlo y otras informaciones relevantes.
-
----
-
-
 # Ecommerce Project
 
 Este es un proyecto de comercio electrónico desarrollado en Django. Incluye funcionalidades como gestión de productos, pedidos, pagos con Stripe, y un sistema de correo para notificaciones.
