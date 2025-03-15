@@ -1,7 +1,7 @@
 from django.db import models
 from .models import Profile, Bag, Order 
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
+#stripe.api_key = settings.STRIPE_SECRET_KEY
 
 class PaymentInformation(models.Model): 
     # Relación con el perfil del usuario
@@ -23,13 +23,13 @@ class PaymentInformation(models.Model):
     def __str__(self):
         return f"Pago {self.payment_intent_id} - {self.amount} {self.currency}"
 
-def create_payment_intent(amount, currency='mxn'):
-    try:
-        intent = stripe.PaymentIntent.create(
-            amount=amount,  # Monto en centavos
-            currency=currency,
-        )
-        return intent
-    except stripe.error.StripeError as e:
-        print(f"Error al crear el PaymentIntent: {e}")
-        return None
+#def create_payment_intent(amount, currency='mxn'):
+ #   try:
+  #      intent = stripe.PaymentIntent.create(
+   #         amount=amount,  # Monto en centavos
+    #        currency=currency,
+     #   )
+      #  return intent
+   # except stripe.error.StripeError as e:
+    #    print(f"Error al crear el PaymentIntent: {e}")
+     #   return None
