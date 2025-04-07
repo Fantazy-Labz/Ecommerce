@@ -1,8 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-
-
 class Product(models.Model): 
 
     OPTIONS = [
@@ -21,7 +19,4 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
-    
-class Bag(models.Model):
-    products = models.ForeignKey(Product, on_delete= models.CASCADE)
     

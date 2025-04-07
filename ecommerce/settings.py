@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     #own modules
-    "products.apps.ProductsConfig",
+    "products",
     "custom_auth"
 ]
 
