@@ -3,9 +3,9 @@ from . import views
 
 urlpatterns = [
     # Registro y login
-    path('signup/', views.signup_view, name='signup'),
-    path('login/', views.login_view, name='login'),
+    path("register/", views.registerView, name='register_view'),
+    path('login/', views.loginView, name='login_view'),
     path('logout/', views.logout_view, name='logout'),
-
-     path('verify-email/<uuid:token>/', views.verify_email, name='verify_email'),
+    path('verify-email/<uuid:token>/', views.verify_email, name='verify_email'),
+    path("updateUser/<int:user_id>/',", views.updateUser, name='update_user'),
 ]

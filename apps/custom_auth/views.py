@@ -1,74 +1,161 @@
-from django.shortcuts import render
+import json
+from django.http import JsonResponse
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.contrib.sites.shortcuts import get_current_site
 import uuid
 from .models import CustomUser
-from .forms import CustomUserCreationForm, CustomAuthenticationForm
+from django.views.decorators.csrf import csrf_exempt
+                
+@csrf_exempt
+def registerView(request):
+    if request.method != 'POST':
+        return JsonResponse({
+            "status": "error",
+            "message": "Invalid request method"
+        }, status=405)
+    try:
+        data = json.loads(request.body)
+        email = data['email']
+        password = data['password']
 
-def signup_view(request):
-    if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.is_active = True  # El usuario estará activo pero no verificado
-            user.verification_token = uuid.uuid4()
-            user.save()
-            
-            # Enviar correo de verificación
-            current_site = get_current_site(request)
-            mail_subject = 'Confirma tu cuenta'
-            message = render_to_string('account/verification_email.html', {
-                'user': user,
-                'domain': current_site.domain,
-                'token': user.verification_token,
-            })
-            send_mail(mail_subject, message, 'noreply@tudominio.com', [user.email])
-            
-            messages.success(request, 'Por favor, confirma tu correo electrónico para completar el registro.')
-            return redirect('login')
-    else:
-        form = CustomUserCreationForm()
-    return render(request, 'account/signup.html', {'form': form})
+        if CustomUser.objects.filter(email=email).exists():
+            return JsonResponse({
+                "status": "error",
+                "message": "Email already exists"
+            }, status=400)
 
-def verify_email(request, token):
+        verification_token = str(uuid.uuid4())
+        user = CustomUser.objects.create_user(email=email, password=password, verification_token=verification_token)
+        user.send_verification_email()
+
+        return JsonResponse({
+            "status": "success",
+            "message": "User registered successfully. Please check your email to verify your account."
+        })
+    except KeyError as e:
+        return JsonResponse({
+            "status": "error",
+            "message": f"Missing field: {str(e)}"
+        }, status=400)
+
+@csrf_exempt
+def verifyEmail(token):
     try:
         user = CustomUser.objects.get(verification_token=token)
         user.is_email_verified = True
         user.save()
-        messages.success(request, 'Tu correo ha sido verificado. Ahora puedes iniciar sesión.')
-        return redirect('login')
+        return JsonResponse({
+            "status": "success",
+            "message": "Email verified successfully. You can now log in."
+        })
     except CustomUser.DoesNotExist:
-        messages.error(request, 'El enlace de verificación no es válido.')
-        return redirect('login')
+        return JsonResponse({
+            "status": "error",
+            "message": "Invalid verification token"
+        }, status=400)
 
-def login_view(request):
-    if request.method == 'POST':
-        form = CustomAuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            email = form.cleaned_data.get('username')  # username field contiene el email
-            password = form.cleaned_data.get('password')
-            user = authenticate(username=email, password=password)
+
+@csrf_exempt
+def loginView(request):  
+        if request.method != 'POST':
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid request method"
+            }, status=405)
+        try:
+            data = json.loads(request.body)
+            email = data['email']
+            password = data['password']
+
+            user = authenticate(request, email=email, password=password)
+
             if user is not None:
-                if user.is_email_verified:
-                    login(request, user)
-                    return redirect('products:dashboard')
-                else:
-                    messages.error(request, 'Por favor, verifica tu correo electrónico antes de iniciar sesión.')
+                login(request, user)
+                return JsonResponse({
+                    "status": "success",
+                    "message": "Login successful"
+                })
             else:
-                messages.error(request, 'Correo o contraseña incorrectos.')
+                return JsonResponse({
+                    "status": "error",
+                    "message": f"Missing field: {str(e)}"
+                }, status=400)
+        except KeyError as e:
+            return JsonResponse({
+                "status": "error",
+                "message": f"Invalid credentials"
+            }, status=401)
+
+@csrf_exempt
+def logoutView(request):
+    if request.method == "¨POST":
+        logout(request)
+        return JsonResponse({
+            "status": "success",
+            "message": "Logout successful"
+        })
     else:
-        form = CustomAuthenticationForm()
-    return render(request, 'account/login.html', {'form': form})
+        return JsonResponse({
+            "status": "error",
+            "message": "Invalid request method"
+        }, status=405)
 
-def logout_view(request):
-    logout(request)
-    return redirect('login')
-
+@csrf_exempt
 @login_required
-def dashboard_view(request):
-    return render(request, 'account/dashboard.html')
+def upadateUser(request, user_id):
+    if request.user.is_authenticated and request.user.is_suiperuser: 
+        if request.method != "POST":
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid request method"
+            }, status=405)
+        try:
+            data = json.loads(request.body)
+            user = CustomUser.objects.get(id=user_id)
+
+            user.email = data.get('email', user.email)
+            user.password = data.get('password', user.password)
+
+            user.save()
+
+            return JsonResponse({
+                "status": "success",
+                "message": "User updated successfully"
+            })
+        except CustomUser.DoesNotExist:
+            return JsonResponse({
+                "status": "error",
+                "message": "User not found"
+            }, status=404)
+    else:
+        return JsonResponse({
+            "status": "error",
+            "message": "You are not authorized to perform this action"
+        }, status=403)
+
+@csrf_exempt
+def deleteUser(request, user_id):
+    if request.user.is_authenticated and request.user.is_superuser:
+        if request.method != "DELETE":
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid request method"
+            }, status=405)
+        try:
+            user = CustomUser.objects.get(id=user_id)
+            user.delete()
+            return JsonResponse({
+                "status": "success",
+                "message": "User deleted successfully"
+            })
+        except CustomUser.DoesNotExist:
+            return JsonResponse({
+                "status": "error",
+                "message": "User not found"
+            }, status=404)
+    else:   
+        return JsonResponse({
+            "status": "error",
+            "message": "You are not authorized to perform this action"
+        }, status=403)
+

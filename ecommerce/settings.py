@@ -38,10 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
+    "rest_framework",
+    "corsheaders",
     #own modules
-    "products",
-    "custom_auth"
+    "apps.products",
 ]
 
 MIDDLEWARE = [
@@ -52,8 +52,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
 ]
 
+#Configuracion solo para desarrollo
+CORS_ALLOW_ALL_ORIGINS = True
 ROOT_URLCONF = 'ecommerce.urls'
 
 TEMPLATES = [
@@ -147,7 +150,7 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 
-AUTH_USER_MODEL = "custom_auth.CustomUser"
+#AUTH_USER_MODEL = "custom_auth.CustomUser"
 
 
 SITE_ID = 1
