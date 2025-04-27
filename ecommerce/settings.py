@@ -11,10 +11,13 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+# Añadir la carpeta 'apps' al PATH de Python
+sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 
 
 # Quick-start development settings - unsuitable for production
@@ -27,6 +30,8 @@ SECRET_KEY = 'django-insecure-=a)9+9e5zoo!hq1qwcphx^5d_!@d&bhpp7shydf7ahce^1(%bs
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
+
 
 
 # Application definition
@@ -42,6 +47,7 @@ INSTALLED_APPS = [
     "corsheaders",
     #own modules
     "apps.products",
+    "apps.custom_auth",
 ]
 
 MIDDLEWARE = [
@@ -150,7 +156,7 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 
-#AUTH_USER_MODEL = "custom_auth.CustomUser"
+AUTH_USER_MODEL = "custom_auth.CustomUser"
 
 
 SITE_ID = 1

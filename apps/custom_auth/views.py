@@ -1,161 +1,180 @@
-import json
-from django.http import JsonResponse
-from django.contrib.auth import login, authenticate, logout
-from django.contrib.auth.decorators import login_required
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.response import Response
 import uuid
 from .models import CustomUser
-from django.views.decorators.csrf import csrf_exempt
-                
-@csrf_exempt
+from .serializers import CustomUserSerializer, UserLoginSerializer
+from django.contrib.auth import authenticate, login, logout
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
 def registerView(request):
-    if request.method != 'POST':
-        return JsonResponse({
-            "status": "error",
-            "message": "Invalid request method"
-        }, status=405)
+    """
+    Registra un nuevo usuario.
+    """
     try:
-        data = json.loads(request.body)
-        email = data['email']
-        password = data['password']
-
-        if CustomUser.objects.filter(email=email).exists():
-            return JsonResponse({
-                "status": "error",
-                "message": "Email already exists"
-            }, status=400)
-
-        verification_token = str(uuid.uuid4())
-        user = CustomUser.objects.create_user(email=email, password=password, verification_token=verification_token)
-        user.send_verification_email()
-
-        return JsonResponse({
-            "status": "success",
-            "message": "User registered successfully. Please check your email to verify your account."
-        })
-    except KeyError as e:
-        return JsonResponse({
+        serializer = CustomUserSerializer(data=request.data)
+        if serializer.is_valid():
+            # Crear usuario pero no guardar aún
+            user = serializer.save(is_active=True, is_email_verified=False)
+            
+            # Generar token de verificación y guardar
+            verification_token = str(uuid.uuid4())
+            user.verification_token = verification_token
+            user.save()
+            
+            # Enviar email de verificación
+            user.send_verification_email()
+            
+            return Response({
+                "status": "success",
+                "message": "Usuario registrado correctamente. Por favor verifica tu email."
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response({
             "status": "error",
-            "message": f"Missing field: {str(e)}"
-        }, status=400)
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    except Exception as e:
+        return Response({
+            "status": "error",
+            "message": f"Error en el registro: {str(e)}"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@csrf_exempt
-def verifyEmail(token):
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def verifyEmail(request, token):
+    """
+    Verifica el email de un usuario mediante el token enviado.
+    """
     try:
         user = CustomUser.objects.get(verification_token=token)
         user.is_email_verified = True
         user.save()
-        return JsonResponse({
+        
+        return Response({
             "status": "success",
-            "message": "Email verified successfully. You can now log in."
+            "message": "Email verificado correctamente. Ahora puedes iniciar sesión."
         })
     except CustomUser.DoesNotExist:
-        return JsonResponse({
+        return Response({
             "status": "error",
-            "message": "Invalid verification token"
-        }, status=400)
+            "message": "Token de verificación inválido."
+        }, status=status.HTTP_400_BAD_REQUEST)
 
-
-@csrf_exempt
-def loginView(request):  
-        if request.method != 'POST':
-            return JsonResponse({
-                "status": "error",
-                "message": "Invalid request method"
-            }, status=405)
-        try:
-            data = json.loads(request.body)
-            email = data['email']
-            password = data['password']
-
-            user = authenticate(request, email=email, password=password)
-
-            if user is not None:
-                login(request, user)
-                return JsonResponse({
-                    "status": "success",
-                    "message": "Login successful"
-                })
-            else:
-                return JsonResponse({
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def loginView(request):
+    """
+    Autentica a un usuario y devuelve un token JWT.
+    """
+    serializer = UserLoginSerializer(data=request.data)
+    if serializer.is_valid():
+        email = serializer.validated_data['email']
+        password = serializer.validated_data['password']
+        
+        user = authenticate(request, email=email, password=password)
+        
+        if user is not None:
+            if not user.is_email_verified:
+                return Response({
                     "status": "error",
-                    "message": f"Missing field: {str(e)}"
-                }, status=400)
-        except KeyError as e:
-            return JsonResponse({
+                    "message": "Por favor verifica tu email antes de iniciar sesión."
+                }, status=status.HTTP_403_FORBIDDEN)
+                
+            login(request, user)
+            
+            # Aquí podrías generar y devolver un token JWT
+            return Response({
+                "status": "success",
+                "message": "Inicio de sesión exitoso",
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "name": user.name,
+                    "last_name": user.last_name
+                }
+            })
+        else:
+            return Response({
                 "status": "error",
-                "message": f"Invalid credentials"
-            }, status=401)
+                "message": "Credenciales inválidas."
+            }, status=status.HTTP_401_UNAUTHORIZED)
+    
+    return Response({
+        "status": "error",
+        "errors": serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
 
-@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def logoutView(request):
-    if request.method == "¨POST":
-        logout(request)
-        return JsonResponse({
+    """
+    Cierra la sesión del usuario actual.
+    """
+    logout(request)
+    return Response({
+        "status": "success",
+        "message": "Sesión cerrada correctamente."
+    })
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def updateUser(request, user_id=None):
+    """
+    Actualiza la información de un usuario.
+    Si no se proporciona user_id, actualiza al usuario actual.
+    """
+    # Determinar qué usuario actualizar
+    if user_id and request.user.is_superuser:
+        try:
+            user = CustomUser.objects.get(id=user_id)
+        except CustomUser.DoesNotExist:
+            return Response({
+                "status": "error",
+                "message": "Usuario no encontrado."
+            }, status=status.HTTP_404_NOT_FOUND)
+    elif user_id and not request.user.is_superuser:
+        return Response({
+            "status": "error",
+            "message": "No tienes permiso para actualizar este usuario."
+        }, status=status.HTTP_403_FORBIDDEN)
+    else:
+        user = request.user
+    
+    # Actualizar el usuario
+    serializer = CustomUserSerializer(user, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({
             "status": "success",
-            "message": "Logout successful"
+            "message": "Usuario actualizado correctamente."
         })
-    else:
-        return JsonResponse({
-            "status": "error",
-            "message": "Invalid request method"
-        }, status=405)
+    
+    return Response({
+        "status": "error",
+        "errors": serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
 
-@csrf_exempt
-@login_required
-def upadateUser(request, user_id):
-    if request.user.is_authenticated and request.user.is_suiperuser: 
-        if request.method != "POST":
-            return JsonResponse({
-                "status": "error",
-                "message": "Invalid request method"
-            }, status=405)
-        try:
-            data = json.loads(request.body)
-            user = CustomUser.objects.get(id=user_id)
-
-            user.email = data.get('email', user.email)
-            user.password = data.get('password', user.password)
-
-            user.save()
-
-            return JsonResponse({
-                "status": "success",
-                "message": "User updated successfully"
-            })
-        except CustomUser.DoesNotExist:
-            return JsonResponse({
-                "status": "error",
-                "message": "User not found"
-            }, status=404)
-    else:
-        return JsonResponse({
-            "status": "error",
-            "message": "You are not authorized to perform this action"
-        }, status=403)
-
-@csrf_exempt
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
 def deleteUser(request, user_id):
-    if request.user.is_authenticated and request.user.is_superuser:
-        if request.method != "DELETE":
-            return JsonResponse({
-                "status": "error",
-                "message": "Invalid request method"
-            }, status=405)
-        try:
-            user = CustomUser.objects.get(id=user_id)
-            user.delete()
-            return JsonResponse({
-                "status": "success",
-                "message": "User deleted successfully"
-            })
-        except CustomUser.DoesNotExist:
-            return JsonResponse({
-                "status": "error",
-                "message": "User not found"
-            }, status=404)
-    else:   
-        return JsonResponse({
+    """
+    Elimina un usuario (solo para administradores).
+    """
+    try:
+        user = CustomUser.objects.get(id=user_id)
+        email = user.email  # Guardar para mensaje
+        user.delete()
+        
+        return Response({
+            "status": "success",
+            "message": f"Usuario {email} eliminado correctamente."
+        })
+    except CustomUser.DoesNotExist:
+        return Response({
             "status": "error",
-            "message": "You are not authorized to perform this action"
-        }, status=403)
-
+            "message": "Usuario no encontrado."
+        }, status=status.HTTP_404_NOT_FOUND)

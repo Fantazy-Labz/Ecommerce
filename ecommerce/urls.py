@@ -22,5 +22,5 @@ from ecommerce import settings
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("products/", include("apps.products.urls")),
-    #path("custom_auth/", include("custom_auth.urls"))
+    path("custom_auth/", include("apps.custom_auth.urls"))
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
